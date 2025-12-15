@@ -148,7 +148,7 @@ UnicodeBlockView::SelectBlockForCharacter(uint32 character)
 	// find block containing the character
 	int32 blockNumber = BlockForCharacter(character);
 
-	if (blockNumber > 0) {
+	if (blockNumber >= 0) {
 		BlockListItem* block = fBlocks.ItemAt(blockNumber);
 
 		int32 blockIndex = IndexOf(block);

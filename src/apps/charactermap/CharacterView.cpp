@@ -780,7 +780,7 @@ CharacterView::_FrameFor(uint32 character) const
 	// find block containing the character
 	int32 blockNumber = BlockForCharacter(character);
 
-	if (blockNumber > 0) {
+	if (blockNumber >= 0) {
 		int32 diff = character - kUnicodeBlocks[blockNumber].start;
 		int32 y = fTitleTops[blockNumber] + fTitleHeight
 			+ (diff / fCharactersPerLine) * fCharacterHeight;
