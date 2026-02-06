@@ -698,6 +698,10 @@ CharacterView::_UpdateSize()
 	if (fCharactersPerLine == 0)
 		fCharactersPerLine = 1;
 
+	int32 waste = bounds.IntegerWidth() - fCharacterWidth * fCharactersPerLine;
+	fCharacterWidth += waste / fCharactersPerLine;
+	fDataRect.left = (int)((waste % fCharactersPerLine) / 2);
+
 	for (uint32 i = 0; i < kNumUnicodeBlocks; i++) {
 		fTitleTops[i] = (int32)ceilf(fDataRect.bottom);
 
