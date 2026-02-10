@@ -600,18 +600,13 @@ CharacterView::_BlockAt(BPoint point) const
 	uint32 guess = (max + min) / 2;
 
 	while ((max >= min) && (guess < kNumUnicodeBlocks - 1 )) {
-		if (fTitleTops[guess] <= point.y && fTitleTops[guess + 1] >= point.y) {
-			if (!IsShowingBlock(guess))
-				return -1;
-			else
-				return guess;
-		}
+		if (fTitleTops[guess] <= point.y && fTitleTops[guess + 1] > point.y)
+			return guess;
 
-		if (fTitleTops[guess + 1] < point.y) {
+		if (fTitleTops[guess + 1] <= point.y)
 			min = guess + 1;
-		} else {
+		else
 			max = guess - 1;
-		}
 
 		guess = (max + min) / 2;
 	}
