@@ -1,0 +1,399 @@
+/*
+ * Copyright 2026 John Davis. All rights reserved.
+ * Distributed under the terms of the MIT License.
+ */
+
+
+#include "VMBusDevicePrivate.h"
+
+
+VMBusDevice::VMBusDevice(device_node* node)
+	:
+	fNode(node),
+	fStatus(B_NO_INIT),
+	fChannelID(0),
+	fDPCHandle(NULL),
+	fIsOpen(false),
+	fRingGPADL(0),
+	fRingBuffer(NULL),
+	fRingBufferLength(0),
+	fTXRing(NULL),
+	fTXRingLength(0),
+	fRXRing(NULL),
+	fRXRingLength(0),
+	fCallback(NULL),
+	fCallbackData(NULL),
+	fVMBus(NULL),
+	fVMBusCookie(NULL)
+{
+	CALLED();
+
+	fStatus = gDeviceManager->get_attr_uint32(fNode, HYPERV_CHANNEL_ID_ITEM, &fChannelID, false);
+	if (fStatus != B_OK) {
+		ERROR("Failed to get channel ID\n");
+		return;
+	}
+
+	device_node* parent = gDeviceManager->get_parent_node(node);
+	gDeviceManager->get_driver(parent, (driver_module_info**)&fVMBus, (void**)&fVMBusCookie);
+	gDeviceManager->put_node(parent);
+
+	mutex_init(&fLock, "vmbus device lock");
+	B_INITIALIZE_SPINLOCK(&fTXLock);
+	B_INITIALIZE_SPINLOCK(&fRXLock);
+}
+
+
+VMBusDevice::~VMBusDevice()
+{
+	CALLED();
+
+	mutex_destroy(&fLock);
+	if (fDPCHandle != NULL)
+		gDPC->delete_dpc_queue(fDPCHandle);
+}
+
+
+uint32
+VMBusDevice::GetBusVersion()
+{
+	return fVMBus->get_version(fVMBusCookie);
+}
+
+
+status_t
+VMBusDevice::Open(uint32 txLength, uint32 rxLength, hyperv_device_callback callback,
+	void* callbackData)
+{
+	// Ring lengths must be page-aligned.
+	if (txLength == 0 || rxLength == 0 || txLength != HV_PAGE_ALIGN(txLength)
+			|| rxLength != HV_PAGE_ALIGN(rxLength))
+		return B_BAD_VALUE;
+
+	MutexLocker locker(fLock);
+	if (fIsOpen)
+		return B_BUSY;
+
+	uint32 txTotalLength = sizeof(vmbus_ring_buffer) + txLength;
+	uint32 rxTotalLength = sizeof(vmbus_ring_buffer) + rxLength;
+	uint32 fRingBufferLength = txTotalLength + rxTotalLength;
+
+	TRACE("Open channel %u tx length 0x%X rx length 0x%X\n", fChannelID, txLength, rxLength);
+
+	// Create the GPADL used for the ring buffers
+	status_t status = fVMBus->allocate_gpadl(fVMBusCookie, fChannelID, fRingBufferLength,
+		&fRingBuffer, &fRingGPADL);
+	if (status != B_OK) {
+		ERROR("Failed to allocate GPADL while opening channel %u (%s)\n", fChannelID,
+			strerror(status));
+		return status;
+	}
+
+	memset(fRingBuffer, 0, fRingBufferLength);
+
+	fTXRing = reinterpret_cast<vmbus_ring_buffer*>(fRingBuffer);
+	fTXRingLength = txLength;
+	fRXRing = reinterpret_cast<vmbus_ring_buffer*>(static_cast<uint8*>(fRingBuffer)
+		+ txTotalLength);
+	fRXRingLength = rxLength;
+
+	// Callback must be in place prior to channel being opened, some devices will begin
+	// to receive data immediately afterwards
+	fCallback = callback;
+	fCallbackData = callbackData;
+	if (fCallback != NULL) {
+		status = gDPC->new_dpc_queue(&fDPCHandle, "hyperv vmbus device", B_NORMAL_PRIORITY);
+		if (status != B_OK)
+			return status;
+	}
+
+	status = fVMBus->open_channel(fVMBusCookie, fChannelID, fRingGPADL, txTotalLength,
+		(hyperv_device_callback)((fCallback != NULL) ? _CallbackHandler : NULL),
+		(fCallback != NULL) ? this : NULL);
+	if (status != B_OK) {
+		ERROR("Failed to open channel %u (%s)\n", fChannelID, strerror(status));
+		return status;
+	}
+
+	fIsOpen = true;
+	return B_OK;
+}
+
+
+void
+VMBusDevice::Close()
+{
+	MutexLocker locker(fLock);
+
+	if (!fIsOpen)
+		return;
+	fIsOpen = false;
+
+	status_t status = fVMBus->close_channel(fVMBusCookie, fChannelID);
+	if (status != B_OK)
+		ERROR("Failed to close channel %u (%s)\n", fChannelID, strerror(status));
+
+	status = fVMBus->free_gpadl(fVMBusCookie, fChannelID, fRingGPADL);
+	if (status != B_OK)
+		ERROR("Failed to free ring GPADL for channel %u (%s)\n", fChannelID, strerror(status));
+
+	if (fDPCHandle != NULL) {
+		gDPC->delete_dpc_queue(fDPCHandle);
+		fDPCHandle = NULL;
+	}
+}
+
+
+status_t
+VMBusDevice::WritePacket(uint16 type, const void* buffer, uint32 length, bool responseRequired,
+	uint64 transactionID)
+{
+	TRACE_TX("Channel %u TX pkt %u len 0x%X resp %u tran %lu\n", fChannelID, type, length,
+		responseRequired, transactionID);
+
+	vmbus_pkt_header header;
+	uint32 totalLength = sizeof(header) + length;
+	uint32 totalLengthAligned = VMBUS_PKT_ALIGN(totalLength);
+
+	header.type = type;
+	header.header_length = static_cast<uint16>(sizeof(header) >> VMBUS_PKT_SIZE_SHIFT);
+	header.total_length = static_cast<uint16>(totalLengthAligned >> VMBUS_PKT_SIZE_SHIFT);
+	header.flags = responseRequired ? VMBUS_PKT_FLAGS_RESPONSE_REQUIRED : 0;
+	header.transaction_id = transactionID;
+
+	iovec pkt[3];
+	uint64 padding = 0;
+	pkt[0].iov_base = &header;
+	pkt[0].iov_len = sizeof(header);
+	pkt[1].iov_base = (void*)buffer;
+	pkt[1].iov_len = length;
+	pkt[2].iov_base = &padding;
+	pkt[2].iov_len = totalLengthAligned - totalLength;
+
+	return _WriteTXData(pkt, 3);
+}
+
+
+status_t
+VMBusDevice::PeekPacket(void* _buffer, uint32 length)
+{
+	InterruptsSpinLocker locker(fRXLock);
+
+	// Ensure at least the requested amount of data is present, plus the shifted packet index
+	if (_AvailableRX() < length + sizeof(uint64))
+		return B_DEV_NOT_READY;
+
+	uint32 readIndex = atomic_get((int32*)&fRXRing->read_index);
+	TRACE_TX("Channel %u RX peek read idx 0x%X write idx 0x%X\n", fChannelID, readIndex,
+		atomic_get((int32*)&fRXRing->write_index));
+
+	_ReadRX(readIndex, _buffer, length);
+	return B_OK;
+}
+
+
+status_t
+VMBusDevice::ReadPacket(vmbus_pkt_header* _header, uint32* _headerLength, void* _buffer,
+	uint32* _length)
+{
+	vmbus_pkt_header header;
+	vmbus_pkt_header* headerPtr;
+	if (_header != NULL) {
+		if (_headerLength == NULL || *_headerLength < sizeof(vmbus_pkt_header))
+			return B_BAD_VALUE;
+		headerPtr = _header;
+	} else {
+		headerPtr = &header;
+	}
+
+	status_t status = PeekPacket(headerPtr, sizeof(vmbus_pkt_header));
+	if (status != B_OK)
+		return status;
+
+	uint32 headerLength = headerPtr->header_length << VMBUS_PKT_SIZE_SHIFT;
+	uint32 totalLength = headerPtr->total_length << VMBUS_PKT_SIZE_SHIFT;
+	if (headerLength < sizeof(vmbus_pkt_header) || totalLength < headerLength) {
+		ERROR("Channel %u RX invalid pkt hdr len 0x%X tot len 0x%X\n", fChannelID, headerLength,
+			totalLength);
+		return B_IO_ERROR;
+	}
+	uint32 dataLength = totalLength - headerLength;
+
+	TRACE_RX("Channel %u RX pkt %u hdr len 0x%X tot len 0x%X\n", fChannelID, headerPtr->type,
+		headerLength, totalLength);
+
+	// Ensure provided buffers are large enough
+	if (_header != NULL) {
+		if (*_headerLength < headerLength) {
+			*_headerLength = headerLength;
+			return B_NO_MEMORY;
+		}
+		*_headerLength = headerLength;
+	}
+
+	if (*_length < dataLength) {
+		*_length = dataLength;
+		return B_NO_MEMORY;
+	}
+	*_length = dataLength;
+
+	InterruptsSpinLocker locker(fRXLock);
+
+	if (_AvailableRX() < totalLength + sizeof(uint64))
+		return B_DEV_NOT_READY;
+
+	uint32 readIndexNew = atomic_get((int32*)&fRXRing->read_index);
+	TRACE_TX("Channel %u RX old read idx 0x%X write idx 0x%X\n", fChannelID, readIndexNew,
+		atomic_get((int32*)&fRXRing->write_index));
+
+	// Read the header, data, and seek past the shifted read index
+	if (_header != NULL && headerLength > sizeof(vmbus_pkt_header))
+		readIndexNew = _ReadRX(readIndexNew, _header, headerLength);
+	else
+		readIndexNew = _SeekRX(readIndexNew, headerLength);
+	readIndexNew = _ReadRX(readIndexNew, _buffer, dataLength);
+	readIndexNew = _SeekRX(readIndexNew, sizeof(uint64));
+	memory_write_barrier();
+
+	atomic_set((int32*)&fRXRing->read_index, (int32)readIndexNew);
+	TRACE_TX("Channel %u RX new read idx 0x%X write idx 0x%X\n", fChannelID,
+		atomic_get((int32*)&fRXRing->read_index), atomic_get((int32*)&fRXRing->write_index));
+
+	return B_OK;
+}
+
+
+/*static*/ void
+VMBusDevice::_CallbackHandler(void* arg)
+{
+	VMBusDevice* vmbusDevice = reinterpret_cast<VMBusDevice*>(arg);
+	gDPC->queue_dpc(vmbusDevice->fDPCHandle, _DPCHandler, arg);
+}
+
+
+/*static*/ void
+VMBusDevice::_DPCHandler(void* arg)
+{
+	VMBusDevice* vmbusDevice = reinterpret_cast<VMBusDevice*>(arg);
+	vmbusDevice->fCallback(vmbusDevice->fCallbackData);
+}
+
+
+inline uint32
+VMBusDevice::_AvailableTX()
+{
+	uint32 readIndex = atomic_get((int32*)&fTXRing->read_index);
+	uint32 writeIndex = atomic_get((int32*)&fTXRing->write_index);
+
+	return (writeIndex >= readIndex)
+		? (fTXRingLength - (writeIndex - readIndex))
+		: (readIndex - writeIndex);
+}
+
+
+inline uint32
+VMBusDevice::_WriteTX(uint32 writeIndex, const void* buffer, uint32 length)
+{
+	// Copy data to the TX ring, accounting for wraparound if needed
+	if (length > fTXRingLength - writeIndex) {
+		uint32 fragmentLength = fTXRingLength - writeIndex;
+		TRACE("Channel %u TX wraparound by %u bytes\n", fChannelID, fragmentLength);
+
+		memcpy(&fTXRing->buffer[writeIndex], buffer, fragmentLength);
+		memcpy(&fTXRing->buffer[0], static_cast<const uint8*>(buffer) + fragmentLength,
+			length - fragmentLength);
+	} else {
+		memcpy(&fTXRing->buffer[writeIndex], buffer, length);
+	}
+
+	// Advance the write index accounting for the wraparound
+	return (writeIndex + length) % fTXRingLength;
+}
+
+
+status_t
+VMBusDevice::_WriteTXData(const iovec txData[], size_t txDataCount)
+{
+	uint64 writeIndexOldShifted;
+	uint32 length = sizeof(writeIndexOldShifted);
+	for (uint32 i = 0; i < txDataCount; i++)
+		length += txData[i].iov_len;
+
+	InterruptsSpinLocker locker(fTXLock);
+
+	// Ensure there is enough space in the TX ring; the write index
+	// cannot equal the read index as this normally indicates there is no data in the ring
+	if (length > _AvailableTX())
+		return B_DEV_NOT_READY;
+
+	uint32 writeIndexOld = atomic_get((int32*)&fTXRing->write_index);
+	TRACE_TX("Channel %u TX old write idx 0x%X read idx 0x%X\n", fChannelID, writeIndexOld,
+		atomic_get((int32*)&fTXRing->read_index));
+
+	// Copy the data to the TX ring
+	uint32 writeIndexNew = writeIndexOld;
+	for (uint32 i = 0; i < txDataCount; i++)
+		writeIndexNew = _WriteTX(writeIndexNew, txData[i].iov_base, txData[i].iov_len);
+
+	// Write the old write index immediately after the newly written data, shifted over by 32 bits
+	writeIndexOldShifted = static_cast<uint64>(writeIndexOld) << 32;
+	writeIndexNew = _WriteTX(writeIndexNew, &writeIndexOldShifted, sizeof(writeIndexOldShifted));
+	memory_write_barrier();
+
+	atomic_set((int32*)&fTXRing->write_index, (int32)writeIndexNew);
+	TRACE_TX("Channel %u TX new write idx 0x%X read idx 0x%X\n", fChannelID,
+		atomic_get((int32*)&fTXRing->write_index), atomic_get((int32*)&fTXRing->read_index));
+
+	locker.Unlock();
+
+	// Signal Hyper-V if required; signaling is only needed if the ring buffer is changing state
+	// from empty to having some amount of data. It does not need a signal if the buffer already
+	// has some amount of data, and we are just adding more
+	memory_read_barrier();
+	if (fTXRing->interrupt_mask == 0
+			&& writeIndexOld == (uint32)atomic_get((int32*)&fTXRing->read_index)) {
+		atomic_add64((int64*)&fTXRing->guest_to_host_interrupt_count, 1);
+		fVMBus->signal_channel(fVMBusCookie, fChannelID);
+	}
+
+	return B_OK;
+}
+
+
+inline uint32
+VMBusDevice::_AvailableRX()
+{
+	uint32 readIndex = atomic_get((int32*)&fRXRing->read_index);
+	uint32 writeIndex = atomic_get((int32*)&fRXRing->write_index);
+
+	return fRXRingLength - ((writeIndex >= readIndex)
+		? (fRXRingLength - (writeIndex - readIndex))
+		: (readIndex - writeIndex));
+}
+
+
+inline uint32
+VMBusDevice::_SeekRX(uint32 readIndex, uint32 length)
+{
+	// Advance the read index accounting for the wraparound
+	return (readIndex + length) % fRXRingLength;
+}
+
+
+inline uint32
+VMBusDevice::_ReadRX(uint32 readIndex, void* buffer, uint32 length)
+{
+	// Copy data from the RX ring, accounting for wraparound if needed
+	if (length > fRXRingLength - readIndex) {
+		uint32 fragmentLength = fRXRingLength - readIndex;
+		TRACE("Channel %u RX wraparound by %u bytes\n", fChannelID, fragmentLength);
+
+		memcpy(buffer, &fRXRing->buffer[readIndex], fragmentLength);
+		memcpy(static_cast<uint8*>(buffer) + fragmentLength, &fRXRing->buffer[0],
+			length - fragmentLength);
+	} else {
+		memcpy(buffer, &fRXRing->buffer[readIndex], length);
+	}
+
+	return _SeekRX(readIndex, length);
+}

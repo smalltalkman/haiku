@@ -318,6 +318,7 @@ AddBootModuleSymlinksToPackage
 	dpc
 	efi_gpt
 	generic_ide_pci
+	hyperv@x86,x86_64
 	ide_isa@x86
 	isa@x86,x86_64
 	intel
