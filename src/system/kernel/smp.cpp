@@ -924,16 +924,16 @@ process_pending_ici(int32 currentCPU)
 
 	switch (msg->message) {
 		case SMP_MSG_INVALIDATE_PAGE_RANGE:
-			arch_cpu_invalidate_TLB_range(msg->data, msg->data2);
+			arch_cpu_invalidate_tlb_range(msg->data, msg->data2, msg->data3);
 			break;
 		case SMP_MSG_INVALIDATE_PAGE_LIST:
-			arch_cpu_invalidate_TLB_list((addr_t*)msg->data, (int)msg->data2);
+			arch_cpu_invalidate_tlb_list(msg->data, (addr_t*)msg->data2, (int)msg->data3);
 			break;
 		case SMP_MSG_USER_INVALIDATE_PAGES:
-			arch_cpu_user_TLB_invalidate();
+			arch_cpu_user_tlb_invalidate(msg->data);
 			break;
 		case SMP_MSG_GLOBAL_INVALIDATE_PAGES:
-			arch_cpu_global_TLB_invalidate();
+			arch_cpu_global_tlb_invalidate();
 			break;
 		case SMP_MSG_CPU_HALT:
 			haltCPU = true;
