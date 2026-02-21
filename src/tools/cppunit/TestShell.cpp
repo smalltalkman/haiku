@@ -62,20 +62,20 @@ status_t
 BTestShell::AddSuite(BTestSuite *suite) {
 	if (suite) {
 		if (Verbosity() >= v3)
-			cout << "Adding suite '" << suite->getName() << "'" << endl;
+			cout << "Adding BTestSuite '" << suite->getName() << "'" << endl;
 
 		CppUnit::TestSuite *ts = new CppUnit::TestSuite(suite->getName());
-		// Add the suite
-		fSuites[suite->getName()] = ts;
 
 		// Add its tests
 		const TestMap &map = suite->getTests();
 		for (TestMap::const_iterator i = map.begin();
 			   i != map.end();
 			      i++) {
-			ts->addTest(i->second);
+			CppUnit::TestSuite *t = new CppUnit::TestSuite(i->first);
+			t->addTest(i->second);
+			ts->addTest(t);
 			if (Verbosity() >= v4 && i->second)
-				cout << "  " << i->first << endl;
+				cout << "  " << i->first << "; " << i->second->getName() << endl;
 		}
 		AddSuite(ts);
 
@@ -90,7 +90,7 @@ status_t
 BTestShell::AddSuite(CppUnit::TestSuite *suite) {
 	if (suite) {
 		if (Verbosity() >= v3)
-			cout << "Adding suite '" << suite->getName() << "'" << endl;
+			cout << "Adding CppUnit::TestSuite '" << suite->getName() << "'" << endl;
 
 		// Add the suite
 		fSuites[suite->getName()] = suite;
