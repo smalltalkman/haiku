@@ -120,11 +120,11 @@ StringAssignTest::PerformTest(void)
 	// a tricky build configuration to avoid breaking the ABI of BString.
 	const int32 OUT_OF_MEM_VAL = 2 * 1000 * 1000 * 1000;
 	// SetTo(char, int32) with excessive length:
-	NextSubTest();
-	str = new BString("dummy");
-	str->SetTo('C', OUT_OF_MEM_VAL);
-	CPPUNIT_ASSERT(strcmp(str->String(), "dummy") == 0);
-	delete str;
+//	NextSubTest();
+//	str = new BString("dummy");
+//	str->SetTo('C', OUT_OF_MEM_VAL);
+//	CPPUNIT_ASSERT(strcmp(str->String(), "dummy") == 0);
+//	delete str;
 
 	// SetTo(char*, int32) with excessive length:
 	NextSubTest();

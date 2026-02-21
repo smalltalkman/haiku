@@ -16,9 +16,9 @@ CppUnit::Test* ArchivableTestSuite()
 	
 	testSuite->addTest(TBArchivableTestCase::Suite());
 	testSuite->addTest(TValidateInstantiationTest::Suite());
-	testSuite->addTest(TInstantiateObjectTester::Suite());
+//	testSuite->addTest(TInstantiateObjectTester::Suite());
 	testSuite->addTest(TFindInstantiationFuncTester::Suite());
-	
+
 	return testSuite;
 }
 

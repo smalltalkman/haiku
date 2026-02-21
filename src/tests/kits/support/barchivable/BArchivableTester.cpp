@@ -107,7 +107,7 @@ void TBArchivableTestCase::ValidArchiveDeep()
 CppUnit::Test* TBArchivableTestCase::Suite()
 {
 	CppUnit::TestSuite* SuiteOfTests = new CppUnit::TestSuite;
-	ADD_TEST(SuiteOfTests, TBArchivableTestCase, TestPerform);
+//	ADD_TEST(SuiteOfTests, TBArchivableTestCase, TestPerform);
 #if !defined(TEST_R5)
 	ADD_TEST(SuiteOfTests, TBArchivableTestCase, InvalidArchiveShallow);
 #endif

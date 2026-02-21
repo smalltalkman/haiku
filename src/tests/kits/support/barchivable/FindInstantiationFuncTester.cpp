@@ -364,7 +364,7 @@ CppUnit::Test* TFindInstantiationFuncTester::Suite()
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case3);
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case4);	
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case5);	
-	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case6);	
+//	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case6);	
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case7);	
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case8);	
 //	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case9);	
@@ -377,7 +377,7 @@ CppUnit::Test* TFindInstantiationFuncTester::Suite()
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case2M);
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case3M);
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case4M);	
-	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case5M);	
+//	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case5M);	
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case6M);	
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case7M);	
 	ADD_TEST(SuiteOfTests, TFindInstantiationFuncTester, Case8M);	

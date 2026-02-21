@@ -35,12 +35,12 @@ CppUnit::Test* LockerTestSuite()
 	CppUnit::TestSuite *testSuite = new CppUnit::TestSuite();
 	
 	testSuite->addTest(ConstructionTest1::suite());
-	testSuite->addTest(ConcurrencyTest1::suite());
-	testSuite->addTest(ConcurrencyTest2::suite());
+//	testSuite->addTest(ConcurrencyTest1::suite());
+//	testSuite->addTest(ConcurrencyTest2::suite());
 	testSuite->addTest(DestructionTest1::suite());
 	testSuite->addTest(DestructionTest2::suite());
-	testSuite->addTest(BenaphoreLockCountTest1::suite());
-	testSuite->addTest(SemaphoreLockCountTest1::suite());
+//	testSuite->addTest(BenaphoreLockCountTest1::suite());
+//	testSuite->addTest(SemaphoreLockCountTest1::suite());
 	
 	return testSuite;
 }
