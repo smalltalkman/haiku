@@ -118,7 +118,7 @@ X86VMTranslationMap::Flush()
 
 			if (!cpuMask.IsEmpty()) {
 				smp_send_multicast_ici(cpuMask, SMP_MSG_USER_INVALIDATE_PAGES,
-					0, 0, 0, NULL, SMP_MSG_FLAG_SYNC);
+					x86_read_cr3(), 0, 0, NULL, SMP_MSG_FLAG_SYNC);
 			}
 		}
 	} else {
@@ -138,7 +138,7 @@ X86VMTranslationMap::Flush()
 
 			if (!cpuMask.IsEmpty()) {
 				smp_send_multicast_ici(cpuMask, SMP_MSG_INVALIDATE_PAGE_LIST,
-					0, (addr_t)fInvalidPages, fInvalidPagesCount,
+					x86_read_cr3(), (addr_t)fInvalidPages, fInvalidPagesCount,
 					NULL, SMP_MSG_FLAG_SYNC);
 			}
 		}
