@@ -1,6 +1,7 @@
 /*
  * Copyright 2007, Ingo Weinhold, ingo_weinhold@gmx.de.
- * All rights reserved. Distributed under the terms of the MIT license.
+ * Copyright 2026, Haiku, Inc. All rights reserved.
+ * Distributed under the terms of the MIT license.
  */
 
 #include "AllocationInfo.h"
@@ -9,7 +10,7 @@
 #include "Node.h"
 #include "Volume.h"
 
-// constructor
+
 Attribute::Attribute(Volume *volume, Node *node, const char *name,
 					 uint32 type)
 	: DataContainer(volume),
@@ -22,35 +23,61 @@ Attribute::Attribute(Volume *volume, Node *node, const char *name,
 {
 }
 
-// destructor
+
 Attribute::~Attribute()
 {
-	ASSERT(fIndex == NULL);
+	ASSERT(fNode == NULL && fIndex == NULL);
 }
 
-// InitCheck
+
 status_t
 Attribute::InitCheck() const
 {
-	return (fName.GetString() ? B_OK : B_NO_INIT);
+	return fName.GetString() ? B_OK : B_NO_INIT;
 }
 
-// SetType
+
 void
-Attribute::SetType(uint32 type)
+Attribute::SetNode(Node *node)
 {
-	if (type != fType) {
-		if (fIndex)
+	if (fNode != NULL) {
+		if (fIndex != NULL)
 			fIndex->Removed(this);
-		fType = type;
-		if (AttributeIndex *index = GetVolume()->FindAttributeIndex(GetName(),
-																	fType)) {
+
+		_NotifyRemoved();
+	}
+
+	fNode = node;
+
+	if (fNode != NULL) {
+		AttributeIndex* index = GetVolume()->FindAttributeIndex(GetName(), fType);
+		if (index != NULL)
 			index->Added(this);
-		}
+
+		_NotifyAdded();
 	}
 }
 
-// SetSize
+
+void
+Attribute::SetType(uint32 type)
+{
+	if (type == fType)
+		return;
+
+	if (fIndex != NULL)
+		fIndex->Removed(this);
+	_NotifyRemoved();
+
+	fType = type;
+
+	AttributeIndex *index = GetVolume()->FindAttributeIndex(GetName(), fType);
+	if (index != NULL)
+		index->Added(this);
+	_NotifyAdded();
+}
+
+
 status_t
 Attribute::SetSize(off_t newSize)
 {
@@ -71,7 +98,7 @@ Attribute::SetSize(off_t newSize)
 	return B_OK;
 }
 
-// WriteAt
+
 status_t
 Attribute::WriteAt(off_t offset, const void *buffer, size_t size, size_t *bytesWritten)
 {
@@ -85,12 +112,44 @@ Attribute::WriteAt(off_t offset, const void *buffer, size_t size, size_t *bytesW
 	if (error != B_OK)
 		return error;
 
-	// update index and live queries
+	// update index and send notifications
 	_Changed(oldKey, oldLength, offset, size);
 	return B_OK;
 }
 
-// _Changed
+
+void
+Attribute::_NotifyAdded()
+{
+	// notify node monitor
+	notify_attribute_changed(GetVolume()->GetID(), -1, fNode->GetID(), GetName(),
+		B_ATTR_CREATED);
+
+	// update live queries
+	uint8 newKey[kMaxIndexKeyLength];
+	size_t newLength;
+	GetKey(newKey, &newLength);
+	GetVolume()->UpdateLiveQueries(NULL, fNode, GetName(),
+		fType, NULL, 0, newKey, newLength);
+}
+
+
+void
+Attribute::_NotifyRemoved()
+{
+	// notify node monitor
+	notify_attribute_changed(GetVolume()->GetID(), -1, fNode->GetID(), GetName(),
+		B_ATTR_REMOVED);
+
+	// update live queries
+	uint8 oldKey[kMaxIndexKeyLength];
+	size_t oldLength;
+	GetKey(oldKey, &oldLength);
+	GetVolume()->UpdateLiveQueries(NULL, fNode, GetName(),
+		fType, oldKey, oldLength, NULL, 0);
+}
+
+
 void
 Attribute::_Changed(uint8* oldKey, size_t oldLength, off_t changeOffset, ssize_t changeSize)
 {
@@ -98,6 +157,10 @@ Attribute::_Changed(uint8* oldKey, size_t oldLength, off_t changeOffset, ssize_t
 	// the index.
 	if (fIndex != NULL && changeOffset < (off_t)kMaxIndexKeyLength && changeSize != 0)
 		fIndex->Changed(this, oldKey, oldLength);
+
+	// notify node monitor
+	notify_attribute_changed(GetVolume()->GetID(), -1, fNode->GetID(), GetName(),
+		B_ATTR_CHANGED);
 
 	// update live queries
 	uint8 newKey[kMaxIndexKeyLength];
@@ -111,7 +174,7 @@ Attribute::_Changed(uint8* oldKey, size_t oldLength, off_t changeOffset, ssize_t
 		fNode->MarkModified(B_STAT_MODIFICATION_TIME);
 }
 
-// SetIndex
+
 void
 Attribute::SetIndex(AttributeIndex *index, bool inIndex)
 {
@@ -122,14 +185,14 @@ Attribute::SetIndex(AttributeIndex *index, bool inIndex)
 	fInIndex = inIndex;
 }
 
-// GetKey
+
 void
 Attribute::GetKey(uint8 key[kMaxIndexKeyLength], size_t *length)
 {
 	ReadAt(0, key, kMaxIndexKeyLength, length);
 }
 
-// AttachAttributeIterator
+
 void
 Attribute::AttachAttributeIterator(AttributeIterator *iterator)
 {
@@ -137,7 +200,7 @@ Attribute::AttachAttributeIterator(AttributeIterator *iterator)
 		fIterators.Insert(iterator);
 }
 
-// DetachAttributeIterator
+
 void
 Attribute::DetachAttributeIterator(AttributeIterator *iterator)
 {
@@ -145,7 +208,7 @@ Attribute::DetachAttributeIterator(AttributeIterator *iterator)
 		fIterators.Remove(iterator);
 }
 
-// GetAllocationInfo
+
 void
 Attribute::GetAllocationInfo(AllocationInfo &info)
 {

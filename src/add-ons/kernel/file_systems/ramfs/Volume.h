@@ -133,10 +133,6 @@ public:
 							  uint32 flags);
 	status_t RemoveEntryListener(EntryListener *listener, Entry *entry);
 
-	// node attributes
-	status_t NodeAttributeAdded(ino_t id, Attribute *attribute);
-	status_t NodeAttributeRemoved(ino_t id, Attribute *attribute);
-
 	// indices
 	IndexDirectory *GetIndexDirectory() const	{ return fIndexDirectory; }
 	NameIndex *GetNameIndex() const;

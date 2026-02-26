@@ -181,12 +181,9 @@ Node::AddAttribute(Attribute *attribute)
 {
 	status_t error = (attribute && !attribute->GetNode() ? B_OK : B_BAD_VALUE);
 	if (error == B_OK) {
-		error = GetVolume()->NodeAttributeAdded(GetID(), attribute);
-		if (error == B_OK) {
-			fAttributes.Insert(attribute);
-			attribute->SetNode(this);
-			MarkModified(B_STAT_MODIFICATION_TIME);
-		}
+		fAttributes.Insert(attribute);
+		attribute->SetNode(this);
+		MarkModified(B_STAT_MODIFICATION_TIME);
 	}
 	return error;
 }
@@ -223,13 +220,11 @@ Node::RemoveAttribute(Attribute *attribute)
 	locker.Unlock();
 
 	// remove the attribute
-	status_t error = GetVolume()->NodeAttributeRemoved(GetID(), attribute);
-	if (error == B_OK) {
-		fAttributes.Remove(attribute);
-		attribute->SetNode(NULL);
-		MarkModified(B_STAT_MODIFICATION_TIME);
-	}
-	return error;
+	fAttributes.Remove(attribute);
+	attribute->SetNode(NULL);
+	MarkModified(B_STAT_MODIFICATION_TIME);
+
+	return B_OK;
 }
 
 

@@ -1626,17 +1626,11 @@ ramfs_create_attr(fs_volume* _volume, fs_vnode* _node, const char *name,
 
 		attribute->SetType(type);
 
-		notify_attribute_changed(volume->GetID(), -1, node->GetID(), name,
-			B_ATTR_CREATED);
-
 	// else truncate if requested
 	} else if (openMode & O_TRUNC) {
 		error = attribute->SetSize(0);
 		if (error != B_OK)
 			return error;
-
-		notify_attribute_changed(volume->GetID(), -1, node->GetID(), name,
-			B_ATTR_CHANGED);
 	}
 	NodeMTimeUpdater mTimeUpdater(node);
 
@@ -1687,14 +1681,8 @@ ramfs_open_attr(fs_volume* _volume, fs_vnode* _node, const char *name,
 	}
 
 	// truncate if requested
-	if (error == B_OK && (openMode & O_TRUNC)) {
+	if (error == B_OK && (openMode & O_TRUNC))
 		error = attribute->SetSize(0);
-
-		if (error == B_OK) {
-			notify_attribute_changed(volume->GetID(), -1, node->GetID(),
-				name, B_ATTR_CHANGED);
-		}
-	}
 	NodeMTimeUpdater mTimeUpdater(node);
 
 	// set result / cleanup on failure
@@ -1810,12 +1798,6 @@ ramfs_write_attr(fs_volume* _volume, fs_vnode* _node, void* _cookie,
 	if (error == B_OK)
 		error = attribute->WriteAt(pos, buffer, *bufferSize, bufferSize);
 
-	// notify listeners
-	if (error == B_OK) {
-		notify_attribute_changed(volume->GetID(), -1, node->GetID(), name,
-			B_ATTR_CHANGED);
-	}
-
 	RETURN_ERROR(error);
 }
 
@@ -1889,12 +1871,6 @@ ramfs_remove_attr(fs_volume* _volume, fs_vnode* _node, const char *name)
 	// delete it
 	if (error == B_OK)
 		error = node->DeleteAttribute(attribute);
-
-	// notify listeners
-	if (error == B_OK) {
-		notify_attribute_changed(volume->GetID(), -1, node->GetID(), name,
-			B_ATTR_REMOVED);
-	}
 
 	RETURN_ERROR(error);
 }
