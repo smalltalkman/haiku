@@ -135,6 +135,19 @@ Node::SetMTime(time_t mTime)
 }
 
 
+uint32
+Node::MarkUnmodified()
+{
+	uint32 modified = fModified;
+	if (modified) {
+		fCTime = time(NULL);
+		SetMTime(fCTime);
+		fModified = 0;
+	}
+	return modified;
+}
+
+
 status_t
 Node::CheckPermissions(int mode) const
 {
@@ -316,4 +329,21 @@ Node::GetAllocationInfo(AllocationInfo &info)
 	Attribute *attribute = NULL;
 	while (GetNextAttribute(&attribute) == B_OK)
 		attribute->GetAllocationInfo(info);
+}
+
+
+NodeStatChangeNotifier::~NodeStatChangeNotifier()
+{
+	if (fNode == NULL || !fNode->IsModified())
+		return;
+
+	uint32 statFields = fNode->MarkUnmodified();
+	for (Entry* entry = fNode->GetFirstReferrer(); entry != NULL;
+			entry = fNode->GetNextReferrer(entry)) {
+		ino_t parentID = -1;
+		if (entry->GetParent() != NULL)
+			parentID = ((Node*)entry->GetParent())->GetID();
+		notify_stat_changed(fNode->GetVolume()->GetID(), parentID,
+			fNode->GetID(), statFields);
+	}
 }
