@@ -6,6 +6,7 @@
 
 #include "AllocationInfo.h"
 #include "Attribute.h"
+#include "Directory.h"
 #include "Misc.h"
 #include "Node.h"
 #include "Volume.h"
@@ -121,32 +122,20 @@ Attribute::WriteAt(off_t offset, const void *buffer, size_t size, size_t *bytesW
 void
 Attribute::_NotifyAdded()
 {
-	// notify node monitor
-	notify_attribute_changed(GetVolume()->GetID(), -1, fNode->GetID(), GetName(),
-		B_ATTR_CREATED);
-
-	// update live queries
 	uint8 newKey[kMaxIndexKeyLength];
 	size_t newLength;
 	GetKey(newKey, &newLength);
-	GetVolume()->UpdateLiveQueries(NULL, fNode, GetName(),
-		fType, NULL, 0, newKey, newLength);
+	_Notify(B_ATTR_CREATED, NULL, 0, newKey, newLength);
 }
 
 
 void
 Attribute::_NotifyRemoved()
 {
-	// notify node monitor
-	notify_attribute_changed(GetVolume()->GetID(), -1, fNode->GetID(), GetName(),
-		B_ATTR_REMOVED);
-
-	// update live queries
 	uint8 oldKey[kMaxIndexKeyLength];
 	size_t oldLength;
 	GetKey(oldKey, &oldLength);
-	GetVolume()->UpdateLiveQueries(NULL, fNode, GetName(),
-		fType, oldKey, oldLength, NULL, 0);
+	_Notify(B_ATTR_REMOVED, oldKey, oldLength, NULL, 0);
 }
 
 
@@ -155,22 +144,36 @@ Attribute::_Changed(uint8* oldKey, size_t oldLength, off_t changeOffset, ssize_t
 {
 	// If there is an index and a change has been made within the key, notify
 	// the index.
-	if (fIndex != NULL && changeOffset < (off_t)kMaxIndexKeyLength && changeSize != 0)
+	if (fIndex != NULL && changeOffset < (off_t)kMaxIndexKeyLength)
 		fIndex->Changed(this, oldKey, oldLength);
 
-	// notify node monitor
-	notify_attribute_changed(GetVolume()->GetID(), -1, fNode->GetID(), GetName(),
-		B_ATTR_CHANGED);
-
-	// update live queries
 	uint8 newKey[kMaxIndexKeyLength];
 	size_t newLength;
 	GetKey(newKey, &newLength);
+	_Notify(B_ATTR_CHANGED, oldKey, oldLength, newKey, newLength);
+}
+
+
+void
+Attribute::_Notify(int32 cause, uint8* oldKey, size_t oldLength,
+	uint8* newKey, size_t newLength)
+{
+	// notify node monitor
+	for (Entry* entry = fNode->GetFirstReferrer(); entry != NULL;
+			entry = fNode->GetNextReferrer(entry)) {
+		ino_t parentID = -1;
+		if (entry->GetParent() != NULL)
+			parentID = entry->GetParent()->GetID();
+		notify_attribute_changed(GetVolume()->GetID(), parentID,
+			fNode->GetID(), GetName(), cause);
+	}
+
+	// update live queries
 	GetVolume()->UpdateLiveQueries(NULL, fNode, GetName(), fType, oldKey,
 		oldLength, newKey, newLength);
 
 	// node has been changed
-	if (fNode != NULL && changeSize != 0)
+	if (fNode != NULL)
 		fNode->MarkModified(B_STAT_MODIFICATION_TIME);
 }
 

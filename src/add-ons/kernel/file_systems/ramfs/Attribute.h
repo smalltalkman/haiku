@@ -59,6 +59,8 @@ private:
 	void _NotifyRemoved();
 	void _Changed(uint8* oldKey, size_t oldLength,
 		off_t changeOffset, ssize_t changeSize);
+	void _Notify(int32 cause, uint8* oldKey, size_t oldLength,
+		uint8* newKey, size_t newLength);
 
 private:
 	Node						*fNode;

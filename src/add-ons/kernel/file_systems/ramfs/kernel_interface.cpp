@@ -68,13 +68,19 @@ static const size_t kOptimalIOSize = 65536;
 static const bigtime_t kNotificationInterval = 1000000LL;
 
 
-// notify_if_stat_changed
-void
+static void
 notify_if_stat_changed(Volume *volume, Node *node)
 {
-	if (volume && node && node->IsModified()) {
-		uint32 statFields = node->MarkUnmodified();
-		notify_stat_changed(volume->GetID(), -1, node->GetID(), statFields);
+	if (volume == NULL || node == NULL || !node->IsModified())
+		return;
+
+	uint32 statFields = node->MarkUnmodified();
+	for (Entry* entry = node->GetFirstReferrer(); entry != NULL;
+			entry = node->GetNextReferrer(entry)) {
+		ino_t parentID = -1;
+		if (entry->GetParent() != NULL)
+			parentID = entry->GetParent()->GetID();
+		notify_stat_changed(volume->GetID(), parentID, node->GetID(), statFields);
 	}
 }
 
