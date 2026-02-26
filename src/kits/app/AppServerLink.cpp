@@ -9,7 +9,6 @@
 
 
 #include <Application.h>
-#include <Locker.h>
 
 #include <ApplicationPrivate.h>
 #include <AppServerLink.h>
@@ -23,17 +22,13 @@
  */
 
 
-static BLocker sLock("AppServerLink_sLock");
-
-
 namespace BPrivate {
 
-AppServerLink::AppServerLink(void)
+AppServerLink::AppServerLink()
 {
-	sLock.Lock();
-
 	// if there is no be_app, we can't do a whole lot, anyway
-	if (be_app) {
+	if (be_app != NULL) {
+		BApplication::Private::ServerLink()->Lock();
 		fReceiver = &BApplication::Private::ServerLink()->Receiver();
 		fSender = &BApplication::Private::ServerLink()->Sender();
 	} else {
@@ -44,7 +39,7 @@ AppServerLink::AppServerLink(void)
 
 AppServerLink::~AppServerLink()
 {
-	sLock.Unlock();
+	BApplication::Private::ServerLink()->Unlock();
 }
 
 }	// namespace BPrivate
