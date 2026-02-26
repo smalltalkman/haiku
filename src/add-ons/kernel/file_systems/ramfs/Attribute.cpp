@@ -149,8 +149,6 @@ Attribute::DetachAttributeIterator(AttributeIterator *iterator)
 void
 Attribute::GetAllocationInfo(AllocationInfo &info)
 {
-	DataContainer::GetAllocationInfo(info);
-	info.AddAttributeAllocation(GetSize());
+	info.AddAttributeAllocation(DataContainer::GetCommittedSize());
 	info.AddStringAllocation(fName.GetLength());
 }
-

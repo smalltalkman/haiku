@@ -154,7 +154,7 @@ public:
 
 	ino_t NextNodeID() { return fNextNodeID++; }
 
-	void GetAllocationInfo(AllocationInfo &info);
+	void GetAllocationInfo(AllocationInfo &info) const;
 
 	bigtime_t GetAccessTime() const	{ return fAccessTime; }
 

@@ -725,7 +725,7 @@ Volume::UpdateLiveQueries(Entry *entry, Node* node, const char *attribute,
 
 
 void
-Volume::GetAllocationInfo(AllocationInfo &info)
+Volume::GetAllocationInfo(AllocationInfo &info) const
 {
 	// tables
 	info.AddOtherAllocation(sizeof(NodeTable));

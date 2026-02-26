@@ -300,22 +300,22 @@ ramfs_ioctl(fs_volume* _volume, fs_vnode* /*node*/, void* /*cookie*/,
 	switch (cmd) {
 		case RAMFS_IOCTL_GET_ALLOCATION_INFO:
 		{
-			if (buffer) {
-				VolumeReadLocker locker(volume);
-				if (!locker.IsLocked()) {
-					AllocationInfo *info = (AllocationInfo*)buffer;
-					volume->GetAllocationInfo(*info);
-				} else
-					SET_ERROR(error, B_ERROR);
-			} else
-				SET_ERROR(error, B_BAD_VALUE);
+			if (buffer == NULL)
+				RETURN_ERROR(B_BAD_VALUE);
+
+			VolumeReadLocker locker(volume);
+			if (!locker.IsLocked())
+				RETURN_ERROR(B_ERROR);
+
+			AllocationInfo *info = (AllocationInfo*)buffer;
+			volume->GetAllocationInfo(*info);
 			break;
 		}
 		case RAMFS_IOCTL_DUMP_INDEX:
 		{
 			if (buffer) {
 				VolumeReadLocker locker(volume);
-				if (!locker.IsLocked()) {
+				if (locker.IsLocked()) {
 					const char *name = (const char*)buffer;
 PRINT("  RAMFS_IOCTL_DUMP_INDEX, `%s'\n", name);
 					IndexDirectory *indexDir = volume->GetIndexDirectory();
