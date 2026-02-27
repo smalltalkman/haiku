@@ -3388,10 +3388,10 @@ BContainerWindow::MarkAttributesMenu(BMenu* menu)
 	int32 itemCount = menu->CountItems();
 	for (int32 index = 0; index < itemCount; index++) {
 		item = menu->ItemAt(index);
-		int32 attrHash;
+		uint32 attrHash;
 		if (item->Message() != NULL) {
-			if (item->Message()->FindInt32("attr_hash", &attrHash) == B_OK)
-				item->SetMarked(PoseView()->ColumnFor((uint32)attrHash) != 0);
+			if (item->Message()->FindInt32("attr_hash", (int32*)&attrHash) == B_OK)
+				item->SetMarked(PoseView()->ColumnFor(attrHash) != 0);
 			else
 				item->SetMarked(false);
 		}
@@ -3405,8 +3405,8 @@ BContainerWindow::MarkAttributesMenu(BMenu* menu)
 			item = submenu->ItemAt(subindex);
 			if (item == NULL || item->Message() == NULL)
 				continue;
-			if (item->Message()->FindInt32("attr_hash", &attrHash) == B_OK)
-				item->SetMarked(PoseView()->ColumnFor((uint32)attrHash) != 0);
+			if (item->Message()->FindInt32("attr_hash", (int32*)&attrHash) == B_OK)
+				item->SetMarked(PoseView()->ColumnFor(attrHash) != 0);
 			else
 				item->SetMarked(false);
 		}
