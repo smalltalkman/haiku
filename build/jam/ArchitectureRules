@@ -662,7 +662,7 @@ rule ArchitectureSetupWarnings architecture
 	EnableWerror src add-ons kernel drivers bus ;
 	EnableWerror src add-ons kernel drivers common ;
 	EnableWerror src add-ons kernel drivers disk ;
-#	EnableWerror src add-ons kernel drivers display ;
+	EnableWerror src add-ons kernel drivers display ;
 	EnableWerror src add-ons kernel drivers dvb ;
 	EnableWerror src add-ons kernel drivers graphics ;
 	EnableWerror src add-ons kernel drivers input ;
