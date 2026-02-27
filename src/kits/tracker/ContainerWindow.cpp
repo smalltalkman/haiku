@@ -911,29 +911,7 @@ BContainerWindow::RestoreStateCommon()
 	if (fUsesLayout)
 		InitLayout();
 
-	if (BootedInSafeMode())
-		// don't pick up backgrounds in safe mode
-		return;
-
-	bool isDesktop = PoseView()->IsDesktopView();
-
-	WindowStateNodeOpener opener(this, false);
-	if (!TargetModel()->IsRoot() && opener.Node() != NULL) {
-		// don't pick up background image for root disks
-		// to do this, would have to have a unique attribute for the
-		// disks window that doesn't collide with the desktop
-		// for R4 this was not done to make things simpler
-		// the default image will still work though
-		fBackgroundImage = BackgroundImage::GetBackgroundImage(opener.Node(), isDesktop);
-			// look for background image info in the window's node
-	}
-
-	BNode defaultingNode;
-	if (fBackgroundImage == NULL && !isDesktop
-		&& DefaultStateSourceNode(kDefaultFolderTemplate, &defaultingNode)) {
-		// look for background image info in the source for defaults
-		fBackgroundImage = BackgroundImage::GetBackgroundImage(&defaultingNode, isDesktop);
-	}
+	UpdateBackgroundImage();
 }
 
 
@@ -976,6 +954,9 @@ BContainerWindow::SwitchDirectory(const entry_ref* ref)
 	// Switch dir and apply new state
 	WindowStateNodeOpener opener(this, false);
 	opener.SetTo(&entry, false);
+
+	// Redraw the background image or erase it
+	UpdateBackgroundImage();
 
 	// Update pose view and set directory type
 	PoseView()->SwitchDir(ref, opener.StreamNode());
@@ -1039,23 +1020,30 @@ BContainerWindow::UpdateTitle()
 void
 BContainerWindow::UpdateBackgroundImage()
 {
-	if (BootedInSafeMode())
+	if (BootedInSafeMode() || PoseView()->IsFilePanel())
 		return;
 
 	WindowStateNodeOpener opener(this, false);
 
-	if (!TargetModel()->IsRoot() && opener.Node() != NULL) {
+	bool isDesktop = PoseView()->IsDesktopView();
+	bool isAllowed = !((TargetModel()->IsDesktop() && !isDesktop) || TargetModel()->IsRoot());
+
+	// look for background image info in the window's node
+	if (isAllowed && opener.Node() != NULL) {
+		// Don't pick up background image for Desktop window or root aka "Disks".
+		// To do this we would have to have a unique attribute for the root window
+		// that doesn't collide with the Desktop on BeOS R4.
+		// The default image will still work though.
 		fBackgroundImage = BackgroundImage::Refresh(fBackgroundImage, opener.Node(),
-			TargetModel()->IsDesktop(), PoseView());
+			isDesktop, PoseView());
 	}
 
-		// look for background image info in the window's node
+	// look for default background image info
 	BNode defaultingNode;
-	if (!fBackgroundImage && !TargetModel()->IsDesktop()
+	if (fBackgroundImage == NULL && !isDesktop
 		&& DefaultStateSourceNode(kDefaultFolderTemplate, &defaultingNode)) {
-		// look for background image info in the source for defaults
 		fBackgroundImage = BackgroundImage::Refresh(fBackgroundImage, &defaultingNode,
-			TargetModel()->IsDesktop(), PoseView());
+			isDesktop, PoseView());
 	}
 }
 

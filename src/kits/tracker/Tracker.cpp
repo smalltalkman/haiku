@@ -539,8 +539,7 @@ TTracker::MessageReceived(BMessage* message)
 		{
 			BDeskWindow* desktop = GetDeskWindow();
 			AutoLock<BWindow> lock(desktop);
-			desktop->UpdateDesktopBackgroundImages();
-			desktop->PostMessage(message, desktop->PoseView());
+			desktop->PostMessage(message, desktop);
 			break;
 		}
 

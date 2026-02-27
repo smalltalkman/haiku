@@ -2263,7 +2263,8 @@ BPoseView::MessageReceived(BMessage* message)
 			break;
 
 		case kRestoreBackgroundImage:
-			ContainerWindow()->UpdateBackgroundImage();
+			if (ContainerWindow() != NULL)
+				ContainerWindow()->MessageReceived(message);
 			break;
 
 		case B_META_MIME_CHANGED:
@@ -8524,11 +8525,6 @@ BPoseView::SwitchDir(const entry_ref* newDirRef, AttributeStreamNode* node)
 	TargetModel()->CloseNode();
 
 	AdoptSystemColors();
-
-	if (!IsDesktopView()) {
-		if (ContainerWindow() != NULL)
-			ContainerWindow()->UpdateBackgroundImage();
-	}
 
 	Invalidate();
 
