@@ -13,6 +13,8 @@
 #include <ApplicationPrivate.h>
 #include <AppServerLink.h>
 
+#include <locks.h>
+
 
 /**	AppServerLink provides proxied access to the application's
  *	connection with the app_server.
@@ -22,13 +24,17 @@
  */
 
 
+static mutex sLock = MUTEX_INITIALIZER("AppServerLink_sLock");
+
+
 namespace BPrivate {
 
 AppServerLink::AppServerLink()
 {
+	mutex_lock(&sLock);
+
 	// if there is no be_app, we can't do a whole lot, anyway
 	if (be_app != NULL) {
-		BApplication::Private::ServerLink()->Lock();
 		fReceiver = &BApplication::Private::ServerLink()->Receiver();
 		fSender = &BApplication::Private::ServerLink()->Sender();
 	} else {
@@ -39,7 +45,7 @@ AppServerLink::AppServerLink()
 
 AppServerLink::~AppServerLink()
 {
-	BApplication::Private::ServerLink()->Unlock();
+	mutex_unlock(&sLock);
 }
 
 }	// namespace BPrivate

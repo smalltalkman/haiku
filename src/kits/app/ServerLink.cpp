@@ -24,8 +24,6 @@ namespace BPrivate {
 
 
 ServerLink::ServerLink()
-	:
-	BLocker()
 {
 }
 
