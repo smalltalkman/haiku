@@ -24,14 +24,14 @@
  */
 
 
-static mutex sLock = MUTEX_INITIALIZER("AppServerLink_sLock");
+static recursive_lock sLock = MUTEX_INITIALIZER("AppServerLink_sLock");
 
 
 namespace BPrivate {
 
 AppServerLink::AppServerLink()
 {
-	mutex_lock(&sLock);
+	recursive_lock_lock(&sLock);
 
 	// if there is no be_app, we can't do a whole lot, anyway
 	if (be_app != NULL) {
@@ -45,7 +45,7 @@ AppServerLink::AppServerLink()
 
 AppServerLink::~AppServerLink()
 {
-	mutex_unlock(&sLock);
+	recursive_lock_unlock(&sLock);
 }
 
 }	// namespace BPrivate

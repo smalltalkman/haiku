@@ -12,7 +12,6 @@
 
 
 #include <OS.h>
-#include <Locker.h>
 #include <LinkReceiver.h>
 #include <LinkSender.h>
 
@@ -34,7 +33,7 @@ class BGradient;
 
 namespace BPrivate {
 
-class ServerLink : public BLocker {
+class ServerLink {
 public:
 								ServerLink();
 	virtual						~ServerLink();
