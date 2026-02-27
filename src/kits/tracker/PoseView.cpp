@@ -9633,9 +9633,12 @@ BPoseView::SortPoses()
 	PRINT(("===================\n"));
 #endif
 
-	PoseList* poseList = CurrentPoseList();
-	BPose** poses = reinterpret_cast<BPose**>(poseList->AsBList()->Items());
-	std::stable_sort(poses, &poses[poseList->CountItems()], PoseComparator(this));
+	BPose** poses = reinterpret_cast<BPose**>(fPoseList->AsBList()->Items());
+	std::stable_sort(poses, &poses[fPoseList->CountItems()], PoseComparator(this));
+	if (IsFiltering()) {
+		poses = reinterpret_cast<BPose**>(fFilteredPoseList->AsBList()->Items());
+		std::stable_sort(poses, &poses[fFilteredPoseList->CountItems()], PoseComparator(this));
+	}
 }
 
 
