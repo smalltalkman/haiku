@@ -24,7 +24,7 @@
  */
 
 
-static recursive_lock sLock = MUTEX_INITIALIZER("AppServerLink_sLock");
+static recursive_lock sLock = RECURSIVE_LOCK_INITIALIZER("AppServerLink_sLock");
 
 
 namespace BPrivate {
