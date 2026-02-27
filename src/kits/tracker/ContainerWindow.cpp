@@ -2633,7 +2633,7 @@ BContainerWindow::AddWindowContextMenu(BMenu* menu)
 		menu->AddSeparatorItem();
 	}
 
-	if (TargetModel()->IsDesktop()) {
+	if (PoseView()->IsDesktopView()) {
 		AddIconSizeMenu(menu);
 		menu->AddSeparatorItem();
 	}
@@ -2644,13 +2644,13 @@ BContainerWindow::AddWindowContextMenu(BMenu* menu)
 		menu->AddSeparatorItem();
 	}
 
-	if (TargetModel()->IsDesktop()) // "Clean up" on Desktop
+	if (PoseView()->IsDesktopView()) // "Clean up" on Desktop
 		menu->AddItem(Shortcuts()->CleanupItem());
 	// else "Arrange by >" menu inserted here,
 	// see UpdateMenu() and SetupArrangeByMenu()
 	menu->AddItem(Shortcuts()->SelectItem());
 	menu->AddItem(Shortcuts()->SelectAllItem());
-	if (!TargetModel()->IsDesktop())
+	if (!PoseView()->IsDesktopView())
 		menu->AddItem(Shortcuts()->OpenParentItem());
 	menu->AddSeparatorItem();
 
@@ -2953,7 +2953,7 @@ BContainerWindow::UpdateWindowContextMenu(BMenu* menu)
 	UpdateWindowMenuOrWindowContextMenu(menu, kWindowPopUpContext);
 
 	// "Mount >" menu is inserted at the bottom
-	if (TargetModel()->IsDesktop() || TargetModel()->IsRoot())
+	if (PoseView()->IsDesktopView() || TargetModel()->IsRoot())
 		SetupMountMenu(menu, kWindowPopUpContext);
 
 	if (ShouldHaveAddOnMenus())
@@ -3542,7 +3542,7 @@ BContainerWindow::SetupArrangeByMenu(BMenu* parent)
 		return;
 
 	// update "Clean up" on Desktop and bail out
-	if (TargetModel()->IsDesktop()) {
+	if (PoseView()->IsDesktopView()) {
 		Shortcuts()->UpdateCleanupItem(Shortcuts()->FindItem(parent, kCleanup, kCleanupAll));
 		return;
 	}
@@ -3824,7 +3824,7 @@ BContainerWindow::SetupDefaultState()
 		return;
 	}
 
-	if (TargetModel()->IsDesktop()) {
+	if (PoseView()->IsDesktopView()) {
 		// don't copy over the attributes if we are the Desktop
 		return;
 	}
@@ -3865,7 +3865,7 @@ BContainerWindow::SetupDefaultState()
 void
 BContainerWindow::RestoreWindowState(AttributeStreamNode* node)
 {
-	if (node == NULL || TargetModel()->IsDesktop()) {
+	if (node == NULL || PoseView()->IsDesktopView()) {
 		// don't restore any window state if we are the Desktop
 		return;
 	}
@@ -3923,7 +3923,7 @@ BContainerWindow::RestoreWindowState(AttributeStreamNode* node)
 void
 BContainerWindow::RestoreWindowState(const BMessage& message)
 {
-	if (TargetModel()->IsDesktop()) {
+	if (PoseView()->IsDesktopView()) {
 		// don't restore any window state if we are the Desktop
 		return;
 	}
@@ -4068,7 +4068,7 @@ BContainerWindow::ShowSelectionWindow()
 void
 BContainerWindow::ShowNavigator(bool show)
 {
-	if (TargetModel()->IsDesktop() || !TargetModel()->IsDirectory() || PoseView()->IsFilePanel())
+	if (PoseView()->IsDesktopView() || !TargetModel()->IsDirectory() || PoseView()->IsFilePanel())
 		return;
 
 	if (show) {
@@ -4100,7 +4100,7 @@ BContainerWindow::ShowNavigator(bool show)
 void
 BContainerWindow::SetSingleWindowBrowseShortcuts(bool enabled)
 {
-	if (TargetModel()->IsDesktop())
+	if (PoseView()->IsDesktopView())
 		return;
 
 	if (enabled) {

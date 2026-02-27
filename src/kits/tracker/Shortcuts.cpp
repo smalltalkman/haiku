@@ -1417,7 +1417,7 @@ TShortcuts::IsCurrentFocusOnTextView() const
 bool
 TShortcuts::IsDesktop() const
 {
-	return fInWindow && PoseView()->TargetModel()->IsDesktop();
+	return fInWindow && PoseView()->IsDesktopView();
 }
 
 
