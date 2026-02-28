@@ -704,9 +704,9 @@ rule ArchitectureSetupWarnings architecture
 	EnableWerror src add-ons kernel drivers network wwan ;
 	EnableWerror src add-ons kernel drivers ports ;
 	EnableWerror src add-ons kernel drivers power ;
-#	EnableWerror src add-ons kernel drivers pty ;
-#	EnableWerror src add-ons kernel drivers sensor ;
-#	EnableWerror src add-ons kernel drivers timer ;
+	EnableWerror src add-ons kernel drivers pty ;
+	EnableWerror src add-ons kernel drivers sensor ;
+	EnableWerror src add-ons kernel drivers timer ;
 	EnableWerror src add-ons kernel drivers video ;
 	EnableWerror src add-ons kernel drivers wmi ;
 	EnableWerror src add-ons kernel file_systems bfs ;
