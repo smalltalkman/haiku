@@ -1,4 +1,4 @@
-1	japanese	x-vnd.Haiku-StyledEdit	4205187966
+1	japanese	x-vnd.Haiku-StyledEdit	3875144589
 Document statistics	Statistics		ドキュメント統計
 Cannot revert, file not found: \"%s\".	RevertToSavedAlert		ファイル \"%s\" が存在しないため、元に戻せません。
 Cut	Menus		切り取り
@@ -14,6 +14,7 @@ Search backwards	FindandReplaceWindow		逆方向検索
 Find again	Menus		次を検索
 Read-only	StatusView		読み込み専用
 Save	Menus		保存
+Untitled %d	Window title		名称未設定 %d
 Cancel	QuitAlert		中止
 Copy	Menus		コピー
 Reload	NodeMonitorAlerts		再読み込み

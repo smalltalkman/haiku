@@ -1,4 +1,4 @@
-1	turkish	x-vnd.Haiku-StyledEdit	4205187966
+1	turkish	x-vnd.Haiku-StyledEdit	3875144589
 Document statistics	Statistics		Belge istatistikleri
 Cannot revert, file not found: \"%s\".	RevertToSavedAlert		Geri alınamıyor, dosya bulunamadı: “%s”.
 Cut	Menus		Kes
@@ -14,6 +14,7 @@ Search backwards	FindandReplaceWindow		Geriye doğru ara
 Find again	Menus		Yeniden bul
 Read-only	StatusView		Saltokunur
 Save	Menus		Kaydet
+Untitled %d	Window title		Başlıksız %d
 Cancel	QuitAlert		Vazgeç
 Copy	Menus		Kopyala
 Reload	NodeMonitorAlerts		Yeniden yükle

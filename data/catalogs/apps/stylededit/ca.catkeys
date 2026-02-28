@@ -1,4 +1,4 @@
-1	catalan; valencian	x-vnd.Haiku-StyledEdit	4205187966
+1	catalan; valencian	x-vnd.Haiku-StyledEdit	3875144589
 Document statistics	Statistics		Estadístiques del document
 Cannot revert, file not found: \"%s\".	RevertToSavedAlert		No es pot revertir: el fitxer no es troba: \"%s\".
 Cut	Menus		Retalla
@@ -14,6 +14,7 @@ Search backwards	FindandReplaceWindow		Cerca enrere
 Find again	Menus		Repeteix la cerca
 Read-only	StatusView		Només de lectura
 Save	Menus		Desa
+Untitled %d	Window title		%d sense títol
 Cancel	QuitAlert		Cancel·la
 Copy	Menus		Copia
 Reload	NodeMonitorAlerts		Torna a carregar
