@@ -28,13 +28,11 @@ App::App()
 	fNamePanelSize(200, 50),
 	fAutoStart(false)
 {
-
 }
 
 
 App::~App()
 {
-
 }
 
 
