@@ -19,13 +19,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <Autolock.h>
 #include <List.h>
-#include <Locker.h>
 #include <MediaAddOn.h>
 #include <MediaRoster.h>
 #include <MediaTheme.h>
 #include <TimeSource.h>
+#include <locks.h>
 
 #include "GameSoundBuffer.h"
 
@@ -35,13 +34,13 @@ static const int32 kGrowth = 16;
 
 static int32 sDeviceCount = 0;
 static BGameSoundDevice* sDevice = NULL;
-static BLocker sDeviceRefCountLock("GameSound device lock");
+static mutex sDeviceRefCountLock = MUTEX_INITIALIZER("GameSound device lock");
 
 
 BGameSoundDevice*
 BGameSoundDevice::GetDefaultDevice()
 {
-	BAutolock _(sDeviceRefCountLock);
+	MutexLocker _(sDeviceRefCountLock);
 
 	if (!sDevice)
 		sDevice = new BGameSoundDevice();
@@ -54,7 +53,7 @@ BGameSoundDevice::GetDefaultDevice()
 void
 BGameSoundDevice::ReleaseDevice()
 {
-	BAutolock _(sDeviceRefCountLock);
+	MutexLocker _(sDeviceRefCountLock);
 
 	sDeviceCount--;
 
